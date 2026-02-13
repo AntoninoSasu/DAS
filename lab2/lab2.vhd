@@ -4,13 +4,13 @@
 --    lab2.vhd  07/09/2023
 --
 --    (c) J.M. Mendias
---    Diseño Automático de Sistemas
---    Facultad de Informática. Universidad Complutense de Madrid
+--    Diseï¿½o Automï¿½tico de Sistemas
+--    Facultad de Informï¿½tica. Universidad Complutense de Madrid
 --
---  Propósito:
+--  Propï¿½sito:
 --    Laboratorio 2
 --
---  Notas de diseño:
+--  Notas de diseï¿½o:
 --
 ---------------------------------------------------------------------
 
@@ -35,7 +35,53 @@ use work.common.all;
 architecture syn of lab2 is
 
   component modCounter
-    ...
+    generic(MAXVAL : natural);
+    port
+      (
+        clk   : in std_logic;
+        rst   : in  std_logic;
+        ce    : in  std_logic;
+        tc    : out std_logic;
+        count : out std_logic_vector
+        );  
+  end component;
+  
+  component synchronizer
+    generic (
+      STAGES : natural;
+      XPOL   : std_logic
+    );
+    port (
+      clk   : in  std_logic;
+      x     : in  std_logic;
+      xSync : out std_logic
+    );
+  end component;
+
+  component debouncer
+    generic (
+      FREQ_KHZ  : natural;
+      BOUNCE_MS : natural;
+      XPOL      : std_logic
+    );
+    port (
+      clk  : in  std_logic;
+      rst  : in  std_logic;
+      x    : in  std_logic;
+      xdeb : out std_logic
+    );
+  end component;
+  
+  component edgeDetector
+    generic (
+      XPOL : std_logic
+    );
+    port (
+      clk   : in  std_logic;
+      x     : in  std_logic;
+      xFall : out std_logic;
+      xRise : out std_logic
+    );
   end component;
 
   constant FREQ_KHZ  : natural := 100_000;  -- frecuencia de operacion en KHz
@@ -64,14 +110,14 @@ architecture syn of lab2 is
 begin
 
   clearSynchronizer : synchronizer
-    generic map (...)
-    port map (...);
+    generic map (STAGES => 2, XPOL => '0')
+    port map (clk => clk, x => clear, xSync => clearSync);
 
   ------------------  
 
   startStopSynchronizer : synchronizer
     generic map (STAGES => 2, XPOL => '0')
-    port map (...);
+    port map (clk => clk, x => startStop, xSync => startStopSync);
 
   startStopDebouncer : debouncer
     generic map (FREQ_KHZ => FREQ_KHZ, BOUNCE_MS => BOUNCE_MS, XPOL => '0')

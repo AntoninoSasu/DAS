@@ -4,13 +4,13 @@
 --    modcounter.vhd  07/09/2023
 --
 --    (c) J.M. Mendias
---    Diseño Automático de Sistemas
---    Facultad de Informática. Universidad Complutense de Madrid
+--    Diseï¿½o Automï¿½tico de Sistemas
+--    Facultad de Informï¿½tica. Universidad Complutense de Madrid
 --
---  Propósito:
---    Contador ascendente genérico (en núm. de bits y valor máximo)
+--  Propï¿½sito:
+--    Contador ascendente genï¿½rico (en nï¿½m. de bits y valor mï¿½ximo)
 --
---  Notas de diseño:
+--  Notas de diseï¿½o:
 --    Orientado a FPGA Xilinx 7 series: reset sincrono y valor inicial
 --
 ---------------------------------------------------------------------
@@ -50,21 +50,21 @@ begin
   begin
     if rising_edge(clk) then
       if rst='1' then
-        cs <= ...;
-      elsif ... then
-        if ... then
-          cs <= ...;
+        cs <= (others => '0');
+      elsif ce='1' then
+        if cs = MAXVAL then
+          cs <= (others => '0');
         else 
-          cs <= ...;
+          cs <= cs + 1;
         end if;
       end if;
     end if;
   end process;
 
-  count <= ...;
+  count <= std_logic_vector(cs);
   
   tc <= 
-    '1' when ... else
+    '1' when cs = MAXVAL else
     '0'; 
 
 end syn;
