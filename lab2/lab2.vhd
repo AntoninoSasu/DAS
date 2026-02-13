@@ -121,25 +121,25 @@ begin
 
   startStopDebouncer : debouncer
     generic map (FREQ_KHZ => FREQ_KHZ, BOUNCE_MS => BOUNCE_MS, XPOL => '0')
-    port map (...);
+    port map (clk => clk, rst => clearSync, x => startStopSync, xdeb => startStopDeb);
 
   startStopEdgeDetector : edgeDetector
-    generic map (XPOL    => '0')
-    port map (..., xFall => open);
+    generic map (XPOL => '0')
+    port map (clk => clk, x => startStopDeb, xRise=> startStopRise, xFall => open);
 
   ------------------  
 
   lapSynchronizer : synchronizer
-    generic map (...)
-    port map (...);
+    generic map (STAGES => 2, XPOL => '0')
+    port map (clk => clk, x => lap , xSync => lapSync);
 
   lapDebouncer : debouncer
-    generic map (...)
-    port map (...);
+    generic map (FREQ_KHZ => FREQ_KHZ, BOUNCE_MS => BOUNCE_MS, XPOL => '0')
+    port map (clk => clk, rst => clearSync, x => lapSync, xdeb => lapDeb);
 
   lapEdgeDetector : edgeDetector
-    generic map (...)
-    port map (...);
+    generic map (XPOL => '0')
+    port map (clk => clk, x => lapDeb, xRise => lapRise, xFall => open);
 
   ------------------  
 
@@ -163,19 +163,19 @@ end process;
 
 cycleCounter : modCounter
   generic map (MAXVAL => ms2cycles(FREQ_KHZ, 100)-1)
-  port map (...);
+  port map (clk => clk, rst => clearSync, ce => startStopTFF, tc => cycleCntTC );
 
 decCounter : modCounter
   generic map (MAXVAL => 9)
-  port map (...);
+  port map (clk => clk, rst => clearSync, ce => cycleCntTC, tc => decCntTC);
 
 secLowCounter : modCounter
   generic map (...)
-  port map (...);
+  port map (clk => clk, rst => clearSync, ce => decCntTC, tc => secLowCntTC);
 
 secHighCounter : modCounter
   generic map (...)
-  port map (...);
+  port map (clk => clk, rst => clearSync);
 
 lapRegisters :
 process (clk)
