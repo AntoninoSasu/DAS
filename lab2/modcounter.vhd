@@ -64,7 +64,7 @@ begin
   count <= std_logic_vector(cs);
   
   tc <= 
-    '1' when cs = MAXVAL else
+    '1' when cs = MAXVAL and ce = '1' else
     '0'; 
 
 end rtl;

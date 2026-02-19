@@ -34,7 +34,7 @@ end bin2segs;
 
 -------------------------------------------------------------------
 
-architecture syn of bin2segs is
+architecture rtl of bin2segs is
   signal segs : std_logic_vector(7 downto 0);
 begin 
 
@@ -61,4 +61,4 @@ begin
       
   segs_n <= segs when en = '1' else (others => '1');
 
-end syn;
+end rtl;

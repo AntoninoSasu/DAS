@@ -32,7 +32,7 @@ end lab2;
 
 use work.common.all;
 
-architecture syn of lab2 is
+architecture rtl of lab2 is
 
   component modCounter
     generic(MAXVAL : natural);
@@ -42,7 +42,7 @@ architecture syn of lab2 is
         rst   : in  std_logic;
         ce    : in  std_logic;
         tc    : out std_logic;
-        count : out std_logic_vector
+        count : out std_logic_vector(log2(MAXVAL)-1 downto 0) 
         );  
   end component;
   
@@ -104,7 +104,6 @@ architecture syn of lab2 is
 
   signal decCnt, secLowCnt : std_logic_vector(3 downto 0);
   signal secHighCnt        : std_logic_vector(2 downto 0);
-  signal cycleCnt          : std_logic_vector(3 downto 0);
 
   signal secLowMux, secHighMux : std_logic_vector(3 downto 0);
 
@@ -150,21 +149,21 @@ begin
     if rising_edge(clk) then
       if clearSync = '1' then
         startStopTFF <= '0';
-      lapTFF <= '0';
-    else
-      if startStopRise = '1' then
-        startStopTFF <= not startStopTFF;
-      end if;
-      if lapRise = '1' then
-        lapTFF <= not lapTFF;
+        lapTFF <= '0';
+      else
+        if startStopRise = '1' then
+          startStopTFF <= not startStopTFF;
+        end if;
+        if lapRise = '1' then
+          lapTFF <= not lapTFF;
+        end if;
       end if;
     end if;
-  end if;
 end process;
 
 cycleCounter : modCounter
   generic map (MAXVAL => ms2cycles(FREQ_KHZ, 100)-1)
-  port map (clk => clk, rst => clearSync, ce => startStopTFF, tc => cycleCntTC, count => cycleCnt);
+  port map (clk => clk, rst => clearSync, ce => startStopTFF, tc => cycleCntTC, count => open);
 
 decCounter : modCounter
   generic map (MAXVAL => 9)
@@ -196,8 +195,8 @@ leftMux :
   secHighMux <= '0' & secHighReg when lapTFF = '1' else '0' & secHighCnt;
 
 rigthMux :
-  secLowMux <= secLowReg when lapTff = '1' else secLowCnt;
+  secLowMux <= secLowReg when lapTFF = '1' else secLowCnt;
 
-leds <= "0000000" & cycleCntTC & secHighMux & secLowMux;
+leds <= decCnt(0) & "0000000" & secHighMux & secLowMux;
 
-end syn;
+end rtl;

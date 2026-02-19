@@ -34,7 +34,7 @@ library ieee;
 use ieee.numeric_std.all;
 use work.common.all;
 
-architecture syn of lab1 is
+architecture rtl of lab1 is
 
   signal opCode  : std_logic_vector(1 downto 0);
   signal leftOp  : signed(7 downto 0);
@@ -53,7 +53,7 @@ begin
       result <=
         resize(leftOp + rightOp, 16) when "00",
         resize(leftOp - rightOp, 16) when "01",
-        resize(-rightOp, 16)          when "10",
+        resize(-rightOp, 16)         when "10",
         leftOp * rightOp             when "11",
         (others => '0') when others;
 
@@ -63,6 +63,6 @@ begin
   an_n <= "1110";
 
   converter : bin2segs
-    port map (en => '1', bin => digit, dp => '1', segs_n => segs_n);
+    port map (en => '1', bin => digit, dp => '0', segs_n => segs_n);
 
-end syn;
+end rtl;
