@@ -39,7 +39,7 @@ end modCounter;
 library ieee;
 use ieee.numeric_std.all;
 
-architecture syn of modCounter is
+architecture rtl of modCounter is
 
   signal cs : unsigned(count'range) := (others => '0');
   
@@ -67,4 +67,4 @@ begin
     '1' when cs = MAXVAL else
     '0'; 
 
-end syn;
+end rtl;

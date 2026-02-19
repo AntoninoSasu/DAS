@@ -104,6 +104,7 @@ architecture syn of lab2 is
 
   signal decCnt, secLowCnt : std_logic_vector(3 downto 0);
   signal secHighCnt        : std_logic_vector(2 downto 0);
+  signal cycleCnt          : std_logic_vector(3 downto 0);
 
   signal secLowMux, secHighMux : std_logic_vector(3 downto 0);
 
@@ -148,14 +149,14 @@ begin
   begin
     if rising_edge(clk) then
       if clearSync = '1' then
-        startStopTFF <= ...;
-      lapTFF <= ...;
+        startStopTFF <= '0';
+      lapTFF <= '0';
     else
-      if ... then
-        startStopTFF <= ...;
+      if startStopRise = '1' then
+        startStopTFF <= not startStopTFF;
       end if;
-      if ... then
-        lapTFF <= ...;
+      if lapRise = '1' then
+        lapTFF <= not lapTFF;
       end if;
     end if;
   end if;
@@ -163,40 +164,40 @@ end process;
 
 cycleCounter : modCounter
   generic map (MAXVAL => ms2cycles(FREQ_KHZ, 100)-1)
-  port map (clk => clk, rst => clearSync, ce => startStopTFF, tc => cycleCntTC );
+  port map (clk => clk, rst => clearSync, ce => startStopTFF, tc => cycleCntTC, count => cycleCnt);
 
 decCounter : modCounter
   generic map (MAXVAL => 9)
-  port map (clk => clk, rst => clearSync, ce => cycleCntTC, tc => decCntTC);
+  port map (clk => clk, rst => clearSync, ce => cycleCntTC, tc => decCntTC, count => decCnt);
 
 secLowCounter : modCounter
-  generic map (...)
-  port map (clk => clk, rst => clearSync, ce => decCntTC, tc => secLowCntTC);
+  generic map (MAXVAL => 9)
+  port map (clk => clk, rst => clearSync, ce => decCntTC, tc => secLowCntTC, count => secLowCnt);
 
 secHighCounter : modCounter
-  generic map (...)
-  port map (clk => clk, rst => clearSync);
+  generic map (MAXVAL => 5)
+  port map (clk => clk, rst => clearSync, ce => secLowCntTC, tc => open, count => secHighCnt);
 
 lapRegisters :
 process (clk)
 begin
   if rising_edge(clk) then
     if clearSync = '1' then
-        secLowReg <= ...;
-    secHighReg <= ...;
-  elsif ... then
-    secLowReg  <= ...;
-    secHighReg <= ...;
+        secLowReg  <= (others => '0');
+        secHighReg <= (Others => '0');
+    elsif lapRise = '1' then
+        secLowReg  <= secLowCnt;
+        secHighReg <= secHighCnt;
+    end if;
   end if;
-end if;
 end process;
 
 leftMux :
-  secHighMux <= ... when ... else ...;
+  secHighMux <= '0' & secHighReg when lapTFF = '1' else '0' & secHighCnt;
 
 rigthMux :
-  secLowMux <= ... when ... else ...;
+  secLowMux <= secLowReg when lapTff = '1' else secLowCnt;
 
-leds <= ...;
+leds <= "0000000" & cycleCntTC & secHighMux & secLowMux;
 
 end syn;
