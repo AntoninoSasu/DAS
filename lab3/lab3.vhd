@@ -37,6 +37,86 @@ use work.common.all;
 
 architecture syn of lab3 is
 
+    component asyncRstSynchronizer
+        generic (
+            STAGES : natural;         
+            XPOL   : std_logic        
+        );
+        port (
+            clk    : in  std_logic;   
+            rstIn  : in  std_logic;   
+            rstOut : out std_logic
+        );
+    end component;
+    
+    component freqSynthesizer
+        generic (
+            FREQ_KHZ : natural;                
+            MULTIPLY : natural range 1 to 64; 
+            DIVIDE   : natural range 1 to 128       
+        );
+        port (
+            clkIn  : in  std_logic;   
+            rdy    : out std_logic;   
+            clkOut : out std_logic
+        );
+    end component;
+    
+    component segsBankRefresher
+        generic (
+            FREQ_KHZ : natural;
+            SIZE     : natural         
+        );
+        port (
+            clk    : in std_logic;                             
+            ens    : in std_logic_vector(SIZE-1 downto 0);   
+            bins   : in std_logic_vector(4*SIZE-1 downto 0); 
+            dps    : in std_logic_vector(SIZE-1 downto 0);    
+
+            an_n   : out std_logic_vector(SIZE-1 downto 0);   
+            segs_n : out std_logic_vector(7 downto 0) 
+        );
+    end component;
+    
+    component synchronizer
+        generic (
+            STAGES : natural;
+             XPOL   : std_logic
+         );
+         port (
+            clk   : in  std_logic;
+            x     : in  std_logic;
+            xSync : out std_logic
+         );
+    end component;
+
+    component debouncer
+        generic (
+            FREQ_KHZ  : natural;
+             BOUNCE_MS : natural;
+            XPOL      : std_logic
+            );
+        port (
+            clk  : in  std_logic;
+            rst  : in  std_logic;
+            x    : in  std_logic;
+             xdeb : out std_logic
+            );
+    end component;
+  
+    component edgeDetector
+        generic (
+            XPOL : std_logic
+        );
+        port (
+            clk   : in  std_logic;
+            x     : in  std_logic;
+            xFall : out std_logic;
+            xRise : out std_logic
+        );
+    end component;
+    
+
   constant OSC_KHZ   : natural := 100_000;     -- frecuencia del oscilador externo en KHz
   constant FREQ_KHZ  : natural := OSC_KHZ/10;  -- frecuencia de operacion en KHz
   constant BOUNCE_MS : natural := 50;          -- tiempo de rebote de los pulsadores en ms
@@ -76,24 +156,30 @@ begin
   ------------------  
   
   coinSynchronizer : synchronizer
-    port map (
+    generic map (STAGES => 2, XPOL => '0')
+    port map ( clk => clk, x => coin, xSync => coinSync);
    
   coinDebouncer : debouncer
-    ...
+    generic map (FREQ_KHZ => FREQ_KHZ, BOUNCE_MS => BOUNCE_MS, XPOL => '0')
+    port map (clk => clk, rst => rstAux, x => coinSync, xDeb => coinDeb);
    
   coinEdgeDetector : edgeDetector
-    ...
+    generic map (XPOL => '0')
+    port map (clk => clk, x => coinDeb, xRise => coinRise, xFall => open);
   
   ------------------  
 
   goSynchronizer : synchronizer
-    ...
+    generic map (STAGES => 2, XPOL => '0')
+    port map ( clk => clk, x => go, xSync => goSync);
    
   goDebouncer : debouncer
-    ...
+    generic map (FREQ_KHZ => FREQ_KHZ, BOUNCE_MS => BOUNCE_MS, XPOL => '0')
+    port map (clk => clk, rst => rstAux, x => goSync, xDeb => goDeb);
    
   goEdgeDetector : edgeDetector
-    ...
+    generic map (XPOL => '0')
+    port map (clk => clk, x => goDeb, xRise => goRise, xFall => open);
   
   ------------------  
  
@@ -116,8 +202,8 @@ begin
       when S3 =>
         spin <= "001";
       when reward =>
-        spin <= "000"
-        incCredit <= '1'
+        spin <= "000";
+        incCredit <= '1';
     end case;
     
     if rstSync='1' then
@@ -130,15 +216,15 @@ begin
             decCredit <= '1';
           end if;
         when S1 =>
-          if goRise='1' then
+          if goRise = '1' then
             state := S2;
           end if;
         when S2 =>
-          if goRise='1' then
+          if goRise = '1' then
             state := S3;
           end if;
         when S3 =>
-          if goRise='1' then
+          if goRise = '1' then
             state := reward;
           end if;
         when reward =>
@@ -156,7 +242,7 @@ begin
     cycleCntTC <= '0';
     if rising_edge(clk) then
       count := count + 1;
-      if count = CYCLES-1 then
+      if count = CYCLES - 1 then
         count := 0;
         cycleCntTC <= '1';
       end if;
@@ -168,11 +254,11 @@ begin
   begin
     process (rstSync, clk)
     begin
-      if rstSync='1' then
+      if rstSync = '1' then
         reel(i) <= (others => '0');
       elsif rising_edge(clk) then
-        if spin(i)='1' and cycleCntTc='1' then
-          if reel(i)=5 then
+        if spin(i) = '1' and cycleCntTC = '1' then
+          if reel(i) = 5 then
             reel(i) <= (others => '0');
           else 
             reel(i) <= reel(i)+1;
@@ -196,19 +282,19 @@ begin
       elsif decCredit='1' then
         credit <= credit - 1;
       elsif incCredit='1' then
-        if (reel(0)=reel(1)) and (reel(1)=reel(2)) then
+        if (reel(0) = reel(1)) and (reel(1) = reel(2)) then
             credit <= credit + 3;
-        elsif (reel(0)=reel(1)) or (reel(0)=reel(2)) or (reel(1)=reel(2)) then
+        elsif (reel(0) = reel(1)) or (reel(0) = reel(2)) or (reel(1) = reel(2)) then
             credit <= credit + 2;
         end if;
       end if;
    end if; 
   end process; 
   
-  bins(3 downto 0) <= std_logic_vector(credit);
-  bins(7 downto 4) <= std_logic_vector(reel(0));
-  bins(11 downto 8) <= std_logic_vector(reel(1));
-  bins(15 downto 12) <= std_logic_vector(reel(2));
+  bins(3 downto 0) <= std_logic_vector(reel(0));
+  bins(7 downto 4) <= std_logic_vector(reel(1));
+  bins(11 downto 8) <= std_logic_vector(reel(2));
+  bins(15 downto 12) <= std_logic_vector(credit);
 
   ens <= "1111";
   dps <= "1000";
