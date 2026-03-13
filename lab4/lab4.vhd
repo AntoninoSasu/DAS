@@ -4,13 +4,13 @@
 --    lab4.vhd  12/09/2023
 --
 --    (c) J.M. Mendias
---    Diseño Automático de Sistemas
---    Facultad de Informática. Universidad Complutense de Madrid
+--    Diseï¿½o Automï¿½tico de Sistemas
+--    Facultad de Informï¿½tica. Universidad Complutense de Madrid
 --
---  Propósito:
+--  Propï¿½sito:
 --    Laboratorio 4
 --
---  Notas de diseño:
+--  Notas de diseï¿½o:
 --
 ---------------------------------------------------------------------
 
@@ -59,6 +59,22 @@ architecture syn of lab4 is
       ps2Data    : in  std_logic
     );
   end component;
+  
+  component segsBankRefresher
+    generic (
+      FREQ_KHZ : natural;
+      SIZE     : natural         
+      );
+    port (
+      clk    : in std_logic;                             
+      ens    : in std_logic_vector(SIZE-1 downto 0);   
+      bins   : in std_logic_vector(4*SIZE-1 downto 0); 
+      dps    : in std_logic_vector(SIZE-1 downto 0);    
+
+      an_n   : out std_logic_vector(SIZE-1 downto 0);   
+      segs_n : out std_logic_vector(7 downto 0) 
+      );
+  end component;
 
   constant FREQ_KHZ : natural := 100_000;        -- frecuencia de operacion en KHz
   constant FREQ_HZ  : natural := FREQ_KHZ*1000;  -- frecuencia de operacion en Hz
@@ -68,7 +84,7 @@ architecture syn of lab4 is
   signal code       : std_logic_vector(7 downto 0) := (others => '0');
   signal speakerTFF : std_logic := '0';
   
-  -- Señales
+  -- Seï¿½ales
   
   signal rstSync     : std_logic;
   signal dataRdy     : std_logic;
@@ -76,8 +92,11 @@ architecture syn of lab4 is
   signal halfPeriod  : natural;
   signal data        : std_logic_vector(7 downto 0);
   signal soundEnable : std_logic;
+  
+  signal ens  : std_logic_vector(3 downto 0);
+  signal dps  : std_logic_vector(3 downto 0);
 
-  -- Descomentar para instrumentar el diseño
+  -- Descomentar para instrumentar el diseï¿½o
   -- attribute mark_debug : string;
   -- attribute mark_debug of ps2Clk  : signal is "true";
   -- attribute mark_debug of ps2Data : signal is "true";
@@ -148,17 +167,35 @@ begin
   end process;
   
   fsm:
-  process (clk, dataRdy, data, code)
+  process (clk)
     type states is (S0, S1, S2, S3); 
     variable state: states := S0;
   begin 
-    ...
+    ldCode <= '0';
+    soundEnable <= '0';
+    
+    if rising_edge(clk) then
+      case state is
+        when S0 => 
+          soundEnable <= '0';
+          if dataRdy = '1' then
+            if data = X"F0" then
+              state := S3;
+            else 
+              ldCode <= '1';
+              state := S1;
+          
+                
   end process;  
   
   speaker <= 
     speakerTFF when ... else ...;
+    
+  ens => "0110"
+  dps => "0000"
 
   displayInterface : segsBankRefresher
-    ...
+    generic map(FREQ_KHZ => FREQ_KHZ, SIZE => 4)
+    port map(clk => clk, bins => code, dps => dps, ens => ens, an_n => an_n, segs_n => segs_n);
   
 end syn;
