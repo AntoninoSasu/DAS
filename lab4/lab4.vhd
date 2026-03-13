@@ -149,7 +149,7 @@ begin
       if rstSync = '1' then
         count := 0;
         speakerTFF <= '0';
-      elsif soundEnable = '1' and halfPeriod/=0 then
+      elsif halfPeriod/=0 then
         if count = 0 then
           count := halfPeriod;
           speakerTFF <= not speakerTFF;
@@ -157,14 +157,13 @@ begin
           count := count - 1;
         end if;
       else
-        count := 0;
         speakerTFF <= '0';
       end if;
     end if; 
   end process;
   
   fsm:
-  process (clk)
+  process (clk, data, dataRdy, code)
     type states is (S0, S1, S2, S3); 
     variable state: states := S0;
   begin 
@@ -172,15 +171,21 @@ begin
     soundEnable <= '0';
     
     if rising_edge(clk) then
+      if rstSync = '1' then
+        state := S0;
+      else
+      
       case state is
         when S0 => 
           soundEnable <= '0';
           if dataRdy = '1' then
-            if data = X"F0" then
-              state := S3;
-            elsif data /= X"AA" then 
-              ldCode <= '1';
-              state := S1;
+            if data /= X"AA" then
+              if data = X"F0" then
+                state := S3;
+              else
+                ldCode <= '1';
+                state := S1;
+              end if;
             end if;
           end if;
           
@@ -190,7 +195,6 @@ begin
             if data = X"F0" then
               state := S2;
             else
-              ldCode <= '1';
               state := S1;
             end if;
           end if;
@@ -211,15 +215,16 @@ begin
             state := S0;
           end if;
         end case;
-
+        
       end if;     
+    end if;
   end process;  
   
   speaker <= 
     speakerTFF when soundEnable = '1' else '0';
 
   displayInterface : segsBankRefresher
-    generic map(FREQ_KHZ => FREQ_KHZ, SIZE => 2)
-    port map(clk => clk, bins => code, dps => "00", ens => "00", an_n => an_n, segs_n => segs_n);
+    generic map(FREQ_KHZ => FREQ_KHZ, SIZE => 4)
+    port map(clk => clk, bins => "00000000" & code, dps => "0000", ens => "0011", an_n => an_n, segs_n => segs_n);
   
 end syn;
