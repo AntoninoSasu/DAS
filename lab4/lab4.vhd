@@ -92,9 +92,6 @@ architecture syn of lab4 is
   signal halfPeriod  : natural;
   signal data        : std_logic_vector(7 downto 0);
   signal soundEnable : std_logic;
-  
-  signal ens  : std_logic_vector(3 downto 0);
-  signal dps  : std_logic_vector(3 downto 0);
 
   -- Descomentar para instrumentar el dise�o
   -- attribute mark_debug : string;
@@ -140,7 +137,7 @@ begin
       FREQ_HZ/(2*415) when X"35",  -- Y = Sol#
       FREQ_HZ/(2*440) when X"33",  -- H = La
       FREQ_HZ/(2*466) when X"3c",  -- U = La#
-      FREQ_HZ/(2*493) when X"3b",  -- J = Si
+      FREQ_HZ/(2*494) when X"3b",  -- J = Si
       FREQ_HZ/(2*523) when X"42",  -- K = Do
       0 when others;    
     
@@ -181,21 +178,48 @@ begin
           if dataRdy = '1' then
             if data = X"F0" then
               state := S3;
-            else 
+            elsif data /= X"AA" then 
               ldCode <= '1';
               state := S1;
+            end if;
+          end if;
           
-                
+        when S1 =>
+          soundEnable <= '1';
+          if dataRdy = '1' then
+            if data = X"F0" then
+              state := S2;
+            else
+              ldCode <= '1';
+              state := S1;
+            end if;
+          end if;
+          
+        when S2 =>
+          soundEnable <= '1';
+          if dataRdy = '1' then
+            if data = code then
+              state := S0;
+            else
+              state := S1;
+            end if;
+          end if;
+          
+        when S3 =>
+          soundEnable <= '0';
+          if dataRdy = '1' then
+            state := S0;
+          end if;
+        end case;
+
+      end if;     
   end process;  
   
   speaker <= 
-    speakerTFF when ... else ...;
-    
-  ens => "0110"
-  dps => "0000"
+    speakerTFF when soundEnable = '1' else '0';
 
   displayInterface : segsBankRefresher
-    generic map(FREQ_KHZ => FREQ_KHZ, SIZE => 4)
-    port map(clk => clk, bins => code, dps => dps, ens => ens, an_n => an_n, segs_n => segs_n);
+    generic map(FREQ_KHZ => FREQ_KHZ, SIZE => 2)
+    port map(clk => clk, bins => code, dps => "00", ens => "00", an_n => an_n, segs_n => segs_n);
   
 end syn;
