@@ -48,6 +48,18 @@ architecture syn of ps2receiver is
       xSync : out std_logic
     );
   end component;
+  
+  component edgeDetector
+    generic (
+      XPOL : std_logic
+      );
+    port (
+      clk   : in  std_logic;
+      x     : in  std_logic;
+      xFall : out std_logic;
+      xRise : out std_logic
+      );
+  end component;
  
   signal ps2DataShf: std_logic_vector(10 downto 0) := (others =>'1');
 
@@ -65,13 +77,18 @@ begin
     port map(clk => clk, x => ps2Data, xSync => ps2DataSync);
 
   ps2ClkEdgeDetector : edgeDetector
-    
+    generic map (XPOL => '0')
+    port map (clk => clk, x => ps2ClkSync, xRise => open, xFall =>  ps2ClkFall);
 
   ps2DataShifter:
   process (clk)
   begin
     if rising_edge(clk) then
-      ...
+      if rst = '1' then
+        ps2DataShf <= (others => '1');
+      elsif ps2ClkFall = '1' then
+        ps2DataShf <= ps2DataSync & ps2DataShf(10 downto 1);
+      end if;
     end if;
   end process;
 
@@ -79,21 +96,29 @@ begin
   process(ps2DataShf)
     variable aux : std_logic;
   begin
-    aux := ...;
-    for i in ... loop
-      ...;
+    aux := '0';
+    for i in 1 to 8 loop
+      aux := aux XOR ps2DataShf(i);
     end loop;
-    parityOK <= aux;
+    parityOK <= aux XOR ps2DataShf(9);
   end process;
 
   lastBitCheker :
-  lastBit <= ...;  
+  lastBit <= not ps2DataShf(0);  
    
   outputRegisters :
   process (clk)
   begin
     if rising_edge(clk) then
-      ...
+      if rst = '1' then
+        data <= (others => '0');
+        dataRdy <= '0';
+      elsif lastBit = '1' and parityOk = '1' then
+        data <= ps2DataShf(8 downto 1);
+        dataRdy <= '1';
+      else
+        dataRdy <= '0';
+      end if;
     end if;
   end process;
     
