@@ -88,22 +88,29 @@ begin
     variable bitPos : natural range 0 to 10 := 0;
     variable RxDShf : std_logic_vector(9 downto 0) := (others => '1');
   begin
-    data      <= ...;
-    baudCntCE <= ...;
+    data      <= RxDShf(8 downto 1);
+    baudCntCE <= (bitPos /= 0);
+    dataRdy <= '0';
+    
     if rising_edge(clk) then
       if rst='1' then
-        ...
+        RxDShf := (others => '1');
+        bitPos := 0;
       else
         case bitPos is
-          when 0 =>                              -- Esperando bit de start
-            dataRdy   <= '0';      
-            ...
-          when others =>                         -- Desplaza
+          when 0 =>                             -- Esperando bit de start
+            if RxDSync = '0' then
+              bitPos :=  1;
+            end if;
+          when others =>                        -- Desplaza
             if readRxD then 
+              RxDShf := RxDSync & RxDShf(9 downto 1);
               if bitPos = 10 then
                 dataRdy <= '1';
+                bitPos := 0;
+              else
+                bitPos := bitPos + 1;
               end if;
-              ...
             end if;
         end case;
       end if;

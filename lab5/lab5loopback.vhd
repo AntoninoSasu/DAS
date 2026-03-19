@@ -34,6 +34,52 @@ use work.common.all;
 
 architecture syn of lab5loopback is
 
+  component synchronizer
+    generic (
+      STAGES : natural;
+      XPOL   : std_logic
+      );
+    port (
+      clk   : in  std_logic;
+      x     : in  std_logic;
+      xSync : out std_logic
+    );
+  end component;
+  
+ component rs232transmitter is
+  generic (
+    FREQ_KHZ : natural;  
+    BAUDRATE : natural   
+  );
+  port (
+
+    clk     : in  std_logic;   
+    rst     : in  std_logic;   
+    dataRdy : in  std_logic;  
+    data    : in  std_logic_vector (7 downto 0);
+    busy    : out std_logic;   
+
+    TxD     : out std_logic   
+  );
+  end component;
+  
+  component rs232receiver is
+  generic (
+    FREQ_KHZ : natural;  
+    BAUDRATE : natural  
+  );
+  port (
+    -- host side
+    clk     : in  std_logic;  
+    rst     : in  std_logic;
+    dataRdy : out std_logic; 
+    data    : out std_logic_vector (7 downto 0); 
+    -- RS232 side
+    RxD     : in  std_logic 
+  );
+  end component;
+
+
   constant FREQ_KHZ : natural := 100_000;  -- frecuencia de operacion en KHz
   constant BAUDRATE : natural := 1200;     -- velocidad de transmisión
 
