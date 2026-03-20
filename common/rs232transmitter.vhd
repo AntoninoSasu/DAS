@@ -74,31 +74,30 @@ begin
   begin
     TxD <= TxDShf(0);
     baudCntCE <= (bitPos /= 0);
-    if baudCntCE then
-      busy <= '1';
-    else
-      busy <= '0';
-    end if;
+    
     if rising_edge(clk) then
       if rst='1' then
         TxDShf := (others =>'1'); 
         bitPos := 0;
       else
+      
         case bitPos is
           when 0 =>                            
             if dataRdy='1' then
               TxDShf := "1" & data & "0";
               bitPos := 1;
             end if;
+          
+          when 10 =>
+            if writeTxD then
+              TxDShf := '1' & TxDShf(9 downto 1);
+              bitPos := 0;
+            end if;
             
           when others =>                         
             if writeTxD then
               TxDShf := '1' & TxDShf(9 downto 1);
-              if bitPos = 10 then
-                bitPos := 0;
-              else
-                bitPos := bitPos + 1;
-              end if;
+              bitPos := bitPos + 1;
             end if;
             
         end case;

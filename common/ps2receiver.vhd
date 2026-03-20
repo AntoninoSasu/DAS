@@ -84,7 +84,7 @@ begin
   process (clk)
   begin
     if rising_edge(clk) then
-      if rst = '1' then
+      if rst = '1' or lastBit = '1' then
         ps2DataShf <= (others => '1');
       elsif ps2ClkFall = '1' then
         ps2DataShf <= ps2DataSync & ps2DataShf(10 downto 1);
