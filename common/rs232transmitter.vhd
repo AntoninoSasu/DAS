@@ -85,12 +85,13 @@ begin
         bitPos := 0;
       else
         case bitPos is
-          when 0 =>                              -- Esperando solicitud de envio
+          when 0 =>                            
             if dataRdy='1' then
               TxDShf := "1" & data & "0";
               bitPos := 1;
             end if;
-          when others =>                         -- Desplaza
+            
+          when others =>                         
             if writeTxD then
               TxDShf := '1' & TxDShf(9 downto 1);
               if bitPos = 10 then
@@ -99,6 +100,7 @@ begin
                 bitPos := bitPos + 1;
               end if;
             end if;
+            
         end case;
       end if;
     end if;

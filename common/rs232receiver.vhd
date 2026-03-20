@@ -93,25 +93,30 @@ begin
     dataRdy <= '0';
     
     if rising_edge(clk) then
+    
       if rst='1' then
         RxDShf := (others => '1');
         bitPos := 0;
       else
         case bitPos is
-          when 0 =>                             -- Esperando bit de start
+          when 0 =>           
             if RxDSync = '0' then
               bitPos :=  1;
             end if;
-          when others =>                        -- Desplaza
+          
+          when 10 =>
+            if readRxD then
+              RxDShf := RxDSync & RxDShf(9 downto 1);
+              bitPos := 0;
+              dataRdy <= '1';
+            end if;
+          
+          when others =>       
             if readRxD then 
               RxDShf := RxDSync & RxDShf(9 downto 1);
-              if bitPos = 10 then
-                dataRdy <= '1';
-                bitPos := 0;
-              else
-                bitPos := bitPos + 1;
-              end if;
+              bitPos := bitPos + 1;
             end if;
+            
         end case;
       end if;
     end if;

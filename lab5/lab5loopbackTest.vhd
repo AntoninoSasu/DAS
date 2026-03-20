@@ -88,7 +88,7 @@ architecture Behavioral of lab5loopbackTest is
   end component;
 
     constant clkPeriod : time := 10 ns;
-    --Señales
+    --Seï¿½ales
     --In
     signal clk: std_logic := '1';
     signal rst: std_logic := '1';
@@ -96,7 +96,7 @@ architecture Behavioral of lab5loopbackTest is
     --Out
     signal Txd: std_logic := '1';
     
-    --Señales internas
+    --Seï¿½ales internas
     constant FREQ_KHZ : natural := 100_000;  -- frecuencia de operacion en KHz
     constant BAUDRATE : natural := 1200;     -- velocidad de transmisiÃ³n
     
@@ -123,11 +123,11 @@ begin
     generic map ( FREQ_KHZ => FREQ_KHZ, BAUDRATE => BAUDRATE )
     port map ( clk => clk, rst => rstSync, dataRdy => dataRdy, data => data, busy => open, TxD => TxD );
     
-    --Generacion de las señales de reloj
+    --Generacion de las seï¿½ales de reloj
     clkGen :
       clk <= not clk after clkPeriod/2;
     
-    --Generacion de la señal de reset
+    --Generacion de la seï¿½al de reset
     rstGen:
       rst <= 
         '0' after (50 us + 5 ns);
