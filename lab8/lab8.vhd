@@ -88,6 +88,20 @@ component vgaTextInterface
   );
 end component;
 
+component freqSynthesizer
+  generic (
+    FREQ_KHZ : natural;                 -- frecuencia del reloj de entrada en KHz
+    MULTIPLY : natural range 1 to 64;   -- factor por el que multiplicar la frecuencia de entrada 
+    DIVIDE   : natural range 1 to 128   -- divisor por el que dividir la frecuencia de entrada
+  );
+  port (
+    clkIn  : in  std_logic;   -- reloj de entrada
+    rdy    : out std_logic;   -- indica si el reloj de salida es válido
+    clkOut : out std_logic    -- reloj de salida
+  );
+end component;
+
+
   constant FREQ_KHZ : natural := 100_000;  -- frecuencia de operacion en KHz
   constant VGA_KHZ  : natural := 25_000;   -- frecuencia de envio de pixeles a la VGA en KHz
   constant FREQ_DIV : natural := FREQ_KHZ/VGA_KHZ; 
@@ -192,6 +206,10 @@ end component;
     X"7f", X"7f", X"7f", X"7f", X"7f", X"7f", X"7f", X"7f"     -- 0xF8 ... 0xFF: _ _ _ _ _ _ _ _
   );
   
+  signal pll_rdy : std_logic;
+  signal clk_25MHz : std_logic;
+  
+  signal capsShift : std_logic;
 begin
  
   rstSynchronizer : synchronizer
@@ -205,7 +223,7 @@ begin
        
   keyScanner:
   process (clk)
-    type states is (keyON, keyOFF);
+    type states is (keyON, keyOFF, keyEXT);
     variable state : states := keyON;
   begin
     if rising_edge(clk) then
@@ -217,10 +235,56 @@ begin
         newLine <= '0';
         clear   <= '0';
       else
-        ...
+        charRdy <= '0';
+        newLine <= '0';
+        clear <= '0';
         if keyRdy='1' then
           case state is
-            ...
+            
+            when keyON =>
+              
+              if key = X"F0" then
+                state := keyOFF;
+              
+              elsif key = X"E0" then
+                state := keyEXT;
+                
+              elsif key = X"76" then
+                clear <= '1';
+              
+              elsif key = X"5A" then
+                newLine <= '1';
+               
+              elsif key = X"12" or key = X"59" then
+                shiftP <= true;
+              
+              elsif key = X"58" then
+                capsOn <= not capsOn;
+                
+              else
+                char <= asciiCode;
+                
+                if asciiCode /= X"7F" then
+                  charRdy <= '1';
+                end if;
+              end if;
+              
+            when keyEXT =>
+              
+              if key = X"F0" then
+                state := keyOFF;
+              else
+                state := keyON;
+              end if;
+            
+            when keyOFF =>
+            
+              if key = X"12" or key = X"59" then
+                shiftP <= false;
+              end if;
+              
+              state := keyON;
+              
           end case;
         end if;
       end if;
@@ -228,30 +292,61 @@ begin
   end process;    
 
   ------------------  
+  
+  capsShift <= '1' when (shiftP xor capsOn) else '0';
+  romAddr <= capsShift & key;
 
-  romAddr <= ...;
-
-  asciiCode <= rom( ... );  
+  asciiCode <= rom( to_integer( unsigned( romAddr)));  
     
   ------------------     
   
   xCounter:
   process (clk)
   begin
-    ...
+    if rising_edge(clk) then
+      if rstSync = '1' or clear = '1' then
+        x <= (others => '0');
+      elsif newLine = '1' then
+        x <= (others => '0');
+      elsif charRdy = '1' then
+        if x = COLSxLINE-1 then
+          x <= (others => '0');
+        else 
+          x <= x + 1;
+        end if;
+      end if;
+    end if;
   end process;
   
   yCounter:
   process (clk)
   begin
-    ...
+    if rising_edge(clk) then
+      if rstSync = '1' or clear='1' then
+        y <= (others => '0');
+      elsif newLine ='1' then
+        if y = ROWSxFRAME-1 then
+          y <= (others => '0');
+        else 
+          y <= y + 1;
+        end if;
+      elsif charRdy = '1' then
+        if x = COLSxLINE-1 then
+          if y = ROWSxFRAME-1 then
+            y <= (others => '0');
+          else
+            y <= y + 1;
+          end if;
+        end if;
+      end if;
+    end if;
   end process;
   
   ------------------     
 
   screenInterface: vgaTextInterface 
     generic map ( FREQ_DIV => FREQ_DIV, BGCOLOR => BGCOLOR, FGCOLOR => FGCOLOR )
-    port map ( clk => clk, clear => clear, x => std_logic_vector(x), y => std_logic_vector(y), char => char, charRdy => charRdy, col => col, uCol => open, row => row, uRow => uRow, hSync => hSync, vSync => vSync, RGB => RGBinterface );
+    port map ( clk => clk, clear => clear, x => std_logic_vector(x), y => std_logic_vector(y), char => char, dataRdy => charRdy, col => col, uCol => open, row => row, uRow => uRow, hSync => hSync, vSync => vSync, RGB => RGBinterface );
       
  ------------------     
 
@@ -259,8 +354,8 @@ begin
   process (row, col, uRow, x, y)
   begin
     RGB <= RGBinterface;
-    if ... then
-      ...
+    if (unsigned(row) = y) and (unsigned(col) = x) and (unsigned(uRow) = 15) then
+      RGB <= FGCOLOR;
     end if;
   end process;
   

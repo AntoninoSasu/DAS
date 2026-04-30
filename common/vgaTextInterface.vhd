@@ -366,8 +366,8 @@ end component;
 begin
 
   screenInteface: vgaRefresher
-    generic map ( FREQ_DIV => FREQ_DIV )
-    port map ( clk => clk, line => line, pixel => pixel, R => color(11 downto 8), G => color(7 downto 4), B => color(3 downto 0), hSync => hSync, vSync => vSync, RGB => RGB );
+    generic map ( FREQ_DIV => 1 )
+    port map ( clk => clk_25MHz, rst => rst, line => line, pixel => pixel, R => color(11 downto 8), G => color(7 downto 4), B => color(3 downto 0), hSync => hSync, vSync => vSync, RGB => RGB );
   
   colInt  <= pixel(9 downto 3);
   uColInt <= pixel(2 downto 0);
@@ -384,9 +384,9 @@ begin
 ------------------  
 
   we        <= dataRdy or clearing;
-  ramWrData <= ... when clearing='0' else ...;      
-  ramWrAddr <= ... when clearing='0' else ...; 
-  ramRdAddr <= ...;
+  ramWrData <= (others => '0') when clearing='1' else char;      
+  ramWrAddr <= std_logic_vector(clearY) & std_logic_vector(clearX) when clearing='0' else y & x; 
+  ramRdAddr <= rowInt & colInt;
   
   process (clk)
   begin
@@ -430,17 +430,28 @@ begin
   clearCounters:
   process (clk, clearX, clearY, clear)
   begin
-    if ... then
-      clearing <= '1';
+    if clearX = (clearX'range => '1') and clearY = (clearY'range => '1') then
+      clearing <= '0';
     else
       clearing <= '0';
     end if;
+    
+    
     if rising_edge(clk) then
       if clear='1' or clearing='1' then
-        ...
+        if clearX = (clearX'range => '1') then
+          clearX <= (others => '0');
+          if clearY = (clearY'range => '1') then
+            clearY <= (others => '0');
+          else
+            clearY <= clearY + 1;
+          end if;
+        end if;
       end if;
     end if;
   end process; 
+  
+  clearing <= '1' when (clear = '1') or (clearX /= (clearX'range => '1') or clearY /= (clearY'range => '1')) else '0';
 
 end syn;
 
