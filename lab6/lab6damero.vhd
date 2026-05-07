@@ -34,27 +34,14 @@ use work.common.all;
 
 architecture syn of lab6damero is
 
-component freqSynthesizer
-  generic (
-    FREQ_KHZ : natural;                 -- frecuencia del reloj de entrada en KHz
-    MULTIPLY : natural range 1 to 64;   -- factor por el que multiplicar la frecuencia de entrada 
-    DIVIDE   : natural range 1 to 128   -- divisor por el que dividir la frecuencia de entrada
-  );
-  port (
-    clkIn  : in  std_logic;   -- reloj de entrada
-    rdy    : out std_logic;   -- indica si el reloj de salida es v�lido
-    clkOut : out std_logic    -- reloj de salida
-  );
-end component;
-
 component vgaRefresher
   generic(
-    FREQ_DIV  : natural  -- razon entre la frecuencia de reloj del sistema y 25 MHz
+    FREQ_DIV  : natural;  -- razon entre la frecuencia de reloj del sistema y 25 MHz
+    FREQ_KHZ  : natural
   );
   port ( 
     -- host side
     clk   : in  std_logic;   -- reloj del sistema
-    rst   : in  std_logic;
     line  : out std_logic_vector(9 downto 0);   -- numero de linea que se esta barriendo
     pixel : out std_logic_vector(9 downto 0);   -- numero de pixel que se esta barriendo
     R     : in  std_logic_vector(3 downto 0);   -- intensidad roja del pixel que se esta barriendo
@@ -74,21 +61,11 @@ end component;
   signal line, pixel : std_logic_vector(9 downto 0);
   signal color       : std_logic_vector(3 downto 0); 
   
-  signal clk_25MHz   : std_logic;
-  signal pll_rdy     : std_logic;
-  signal rst         : std_logic;
-  
-begin
-  
-  rst <= not pll_rdy;
- 
-  clkGenerator: freqSynthesizer
-    generic map (FREQ_KHZ => FREQ_KHZ, MULTIPLY => 1, DIVIDE => FREQ_DIV)
-    port map ( clkIn => clk, rdy => pll_rdy, clkOut => clk_25MHz);
+begin 
   
   screenInteface: vgaRefresher
-    generic map ( FREQ_DIV => 1 )
-    port map ( clk => clk_25MHz, rst => rst, line => line, pixel => pixel, R => color, G => color, B => color, hSync => hSync, vSync => vSync, RGB => RGB );
+    generic map ( FREQ_DIV => FREQ_DIV, FREQ_KHZ => FREQ_KHZ)
+    port map ( clk => clk, line => line, pixel => pixel, R => color, G => color, B => color, hSync => hSync, vSync => vSync, RGB => RGB );
     
   color <= (others => pixel(4) xor line(4));
 

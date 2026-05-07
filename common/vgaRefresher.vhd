@@ -22,12 +22,12 @@ use ieee.std_logic_1164.all;
 
 entity vgaRefresher is
   generic(
-    FREQ_DIV  : natural  -- razon entre la frecuencia de reloj del sistema y 25 MHz
+    FREQ_DIV  : natural;  -- razon entre la frecuencia de reloj del sistema y 25 MHz
+    FREQ_KHZ  : natural
   );
   port ( 
     -- host side
     clk   : in  std_logic;   -- reloj del sistema
-    rst   : in std_logic; ---
     line  : out std_logic_vector(9 downto 0);   -- numero de linea que se esta barriendo
     pixel : out std_logic_vector(9 downto 0);   -- numero de pixel que se esta barriendo
     R     : in  std_logic_vector(3 downto 0);   -- intensidad roja del pixel que se esta barriendo
@@ -48,6 +48,19 @@ use work.common.all;
 
 architecture syn of vgaRefresher is
 
+component freqSynthesizer
+  generic (
+    FREQ_KHZ : natural;                 -- frecuencia del reloj de entrada en KHz
+    MULTIPLY : natural range 1 to 64;   -- factor por el que multiplicar la frecuencia de entrada 
+    DIVIDE   : natural range 1 to 128   -- divisor por el que dividir la frecuencia de entrada
+  );
+  port (
+    clkIn  : in  std_logic;   -- reloj de entrada
+    rdy    : out std_logic;   -- indica si el reloj de salida es v�lido
+    clkOut : out std_logic    -- reloj de salida
+  );
+end component;
+
   --constant CYCLESxPIXEL : natural := FREQ_DIV;
   constant PIXELSxLINE  : natural := 800;
   constant LINESxFRAME  : natural := 525;
@@ -60,17 +73,24 @@ architecture syn of vgaRefresher is
 
   signal blanking : boolean;
   
+  signal clk_25MHz : std_logic;
+  signal pll_rdy   : std_logic;
+  
 begin
 
+  clkGenerator: freqSynthesizer
+    generic map (FREQ_KHZ => FREQ_KHZ, MULTIPLY => 1, DIVIDE => FREQ_DIV)
+    port map ( clkIn => clk, rdy => pll_rdy, clkOut => clk_25MHz);
+
   counters:
-  process (clk)
+  process (clk_25MHz)
   begin
-    if rising_edge(clk) then
-    ---
-      if rst = '1' then
+    if rising_edge(clk_25MHz) then
+    
+      if pll_rdy = '0' then
         pixelCNt <= (others => '0');
         lineCnt <= (others => '0');
-      ---
+
       elsif pixelCnt=PIXELSxLINE-1 then
         pixelCnt <= (others => '0');
         
@@ -79,8 +99,10 @@ begin
         else
           lineCnt <= lineCnt + 1;
         end if;
+        
       else
       pixelCnt <= pixelCnt + 1;
+      
       end if;
     end if;
   end process;
@@ -94,16 +116,16 @@ begin
   blanking <= (pixelCnt >= 640) or (lineCnt >= 480);
   
   outputRegisters:
-  process (clk)
+  process (clk_25MHz)
   begin
-    if rising_edge(clk) then
-    ---
-      if rst = '1' then
+    if rising_edge(clk_25MHz) then
+
+      if pll_rdy = '0' then
          hSync <= '0';
          vSync <= '1';
          RGB <= (others => '0');
+         
       else 
-    ---
       hSync <= hSyncInt;
       vSync <= vSyncInt;
       
@@ -111,6 +133,7 @@ begin
         RGB <= (others => '0');
       else
         RGB <= R & G & B;
+        
       end if;
     end if;
    end if;
