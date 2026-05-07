@@ -62,7 +62,6 @@ component vgaRefresher
   port ( 
     -- host side
     clk   : in  std_logic;   -- reloj del sistema
-    rst   : in std_logic; ---
     line  : out std_logic_vector(9 downto 0);   -- numero de linea que se esta barriendo
     pixel : out std_logic_vector(9 downto 0);   -- numero de pixel que se esta barriendo
     R     : in  std_logic_vector(3 downto 0);   -- intensidad roja del pixel que se esta barriendo
@@ -367,7 +366,7 @@ begin
 
   screenInteface: vgaRefresher
     generic map ( FREQ_DIV => 1 )
-    port map ( clk => clk_25MHz, rst => rst, line => line, pixel => pixel, R => color(11 downto 8), G => color(7 downto 4), B => color(3 downto 0), hSync => hSync, vSync => vSync, RGB => RGB );
+    port map ( clk => clk, line => line, pixel => pixel, R => color(11 downto 8), G => color(7 downto 4), B => color(3 downto 0), hSync => hSync, vSync => vSync, RGB => RGB );
   
   colInt  <= pixel(9 downto 3);
   uColInt <= pixel(2 downto 0);
